@@ -16,8 +16,15 @@ class Book(db.Model):
         self.pages = pages
         self.publication_date = publication_date
 
-    book_isbn = db.Column(db.Integer, primary_key=True, unsigned=True)
+    book_isbn = db.Column(db.Integer, primary_key=True)
     genre_id = db.Column(db.Integer, db.ForeignKey('genre.genre_id'))
+    author_id = db.Column(db.Integer, db.ForeignKey('author.author_id'))
+    title = db.Column(db.String(255))
+    stock = db.Column(db.Integer)
+    price = db.Column(db.Float)
+    pages = db.Column(db.Integer)
+    publication_date = db.Column(db.DateTime)
+    stock_added_date = db.Column(db.DateTime)
 
 
 class Author(db.Model):
@@ -36,6 +43,7 @@ class Author(db.Model):
     country = db.Column(db.String(255))
     gender = db.Column(db.String(25))
     dob = db.Column(db.DateTime)
+    book = db.relationship('Book', backref='author', lazy=True, cascade='all, delete')
 
     def __repr__(self):
         return (f'<Author - {self.author_id} - {self.name} - {self.last_name}'
@@ -51,7 +59,7 @@ class Genre(db.Model):
     genre_id = db.Column(db.Integer, primary_key = True)
     genre = db.Column(db.String(255), unique = True, nullable = False)
     description = db.Column(db.String(255), nullable = True)
-    author = db.relationship('Book')
+    book = db.relationship('Book', backref='genre', lazy= True, cascade='all, delete')
 
     def __repr__(self):
         return f'<Genre - {self.genre_id} - {self.genre} - {self.description}>'

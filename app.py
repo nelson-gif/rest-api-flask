@@ -10,7 +10,128 @@ db.init_app(app)
 def hello_world():  # put application's code here
     return 'Hello World!'
 
+#code for table BOOK
+@app.route('/book', methods=['POST'])
+def create_book():
+    data = request.get_json()
+    book_isbn = data.get('book_isbn')
+    genre_id = data.get('genre_id')
+    author_id = data.get('author_id')
+    title = data.get('title')
+    stock = data.get('stock')
+    price = data.get('price')
+    pages = data.get('pages')
+    publication_date = data.get('publication_date')
 
+    if book_isbn is None and genre_id is None and author_id is None and title is None and stock is None:
+        return jsonify({'error' : 'books_isbn, genre_id, author_id, title and stock cannot be null'}), 406
+
+    try:
+        book = Book(book_isbn, genre_id, author_id, title, stock, price, pages, publication_date)
+
+        db.session.add(book)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error message' : 'an error ocurred while saving the book',
+                        'error' : f'{e}'}), 400
+
+    return jsonify({'message' : 'the book was added successfully',
+                    'book added' : f'{data}'}), 201
+
+@app.route('/book', methods=['GET'])
+def get_all_books():
+    books = Book.query.all()
+    books_list = []
+    for book in books:
+        temporary_book = {
+            'book_isbn' : book.book_isbn,
+            'genre' : {
+                'genre' : f'{Genre.query.get(book.genre_id)}'
+            },
+            'author' : {
+                'author' : f'{Author.query.get(book.author_id)}'
+            },
+            'title' : book.title,
+            'stock' : book.stock,
+            'price' : book.price,
+            'pages' : book.pages,
+            'publication_date' : book.publication_date,
+            'stock_added_date' : book.stock_added_date
+        }
+        books_list.append(temporary_book)
+    return jsonify(books_list), 200
+
+@app.route('/book/<int:id>', methods = ['GET'])
+def get_book_by_id(id):
+    book = Book.query.get(id)
+    if book is None:
+        return jsonify({'error' : 'book not found'}), 404
+    temporary_book = {
+        'book_isbn' : book.book_isbn,
+        'genre_id' : {
+            'genre' : f'{Genre.query.get(book.genre_id)}'
+        },
+        'author_id' : {
+            'author' : f'{Author.query.get(book.author_id)}'
+        },
+        'title' : book.title,
+        'stock' : book.stock,
+        'price' : book.price,
+        'pages' : book.pages,
+        'publication_date' : book.publication_date,
+        'stock_added_date' : book.stock_added_date
+    }
+    return jsonify(temporary_book), 200
+
+@app.route('/book/<int:id>', methods=['PUT'])
+def update_book_by_id(id):
+    book = Book.query.get(id)
+    if book is None:
+        return jsonify({'error' : 'book not found'}), 404
+    data = request.get_json()
+    book_isbn = data.get('book_isbn')
+    genre_id = data.get('genre_id')
+    author_id = data.get('author_id')
+    title = data.get('title')
+    stock = data.get('stock')
+    price = data.get('price')
+    pages = data.get('pages')
+    publication_date = data.get('publication_date')
+
+    if book_isbn is None and genre_id is None and author_id is None and title is None and stock is None:
+        return jsonify({'error': 'books_isbn, genre_id, author_id, title and stock cannot be null'}), 406
+
+    try:
+        book.book_isbn = book_isbn
+        book.genre_id = genre_id
+        book.author_id = author_id
+        book.title = title
+        book.stock = stock
+        book.price = price
+        book.pages = pages
+        book.publication_date = publication_date
+
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error message' : 'an error ocurred while updating the book',
+                        'error' : f'{e}'}), 400
+    return jsonify({'message' : 'the book was updated successfully'}), 200
+
+@app.route('/book/<int:id>', methods=['DELETE'])
+def delete_book_by_id(id):
+    book = Book.query.get(id)
+    if book is None:
+        return jsonify({'error' : 'book not found'}), 404
+    try:
+        db.session.delete(book)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error message' : 'an error ocurred while deleting the book',
+                        'error' : f'{e}'}), 400
+    return jsonify({'message' : 'the book was deleted successfully'}), 200
 
 #code for table AUTHOR
 @app.route('/author', methods=['POST'])
@@ -101,8 +222,13 @@ def delete_author_by_id(id):
     author = Author.query.get(id)
     if author is None:
         return jsonify({'error' : f'there is no author with the id {id}'}), 404
-    db.session.delete(author)
-    db.session.commit()
+    try:
+        db.session.delete(author)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message' : 'an error ocurred while deleting author'
+                           ,'error' : f'{e}'}), 400
     return jsonify({'message' : 'author was deleted successfully'}), 200
 
 
